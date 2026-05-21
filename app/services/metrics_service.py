@@ -17,6 +17,8 @@ except ImportError:  # pragma: no cover
     def Histogram(*args, **kwargs):  # type: ignore
         return _NoopMetric()
 
+from app.services.slo_service import SLOTracker
+
 REQUEST_COUNT = Counter(
     "premortem_http_requests_total",
     "Total HTTP requests",
@@ -28,3 +30,5 @@ REQUEST_LATENCY = Histogram(
     "HTTP request latency",
     ["method", "path"],
 )
+
+SLO_TRACKER = SLOTracker()

@@ -1,6 +1,6 @@
 PYTHON ?= python3
 
-.PHONY: install run worker migrate test lint format check-env validate-splunk export-openapi backup-db restore-db
+.PHONY: install run worker migrate test lint format check-env validate-splunk export-openapi backup-db restore-db retention
 
 install:
 	$(PYTHON) -m pip install -r requirements.txt
@@ -37,3 +37,6 @@ backup-db:
 
 restore-db:
 	$(PYTHON) scripts/restore_postgres.py
+
+retention:
+	$(PYTHON) scripts/run_retention.py

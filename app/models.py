@@ -13,6 +13,9 @@ class Tenant(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(Text, unique=True, nullable=False)
     slug: Mapped[str] = mapped_column(Text, unique=True, nullable=False, index=True)
+    oidc_domain: Mapped[str | None] = mapped_column(Text)
+    oidc_issuer: Mapped[str | None] = mapped_column(Text)
+    usage_quota_per_minute: Mapped[int] = mapped_column(Integer, nullable=False, default=600)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False)
 
@@ -154,3 +157,17 @@ class AppSetting(Base):
     key: Mapped[str] = mapped_column(Text, nullable=False, index=True)
     value: Mapped[str] = mapped_column(Text, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, onupdate=utc_now, nullable=False)
+
+
+class AuditEvent(Base):
+    __tablename__ = "audit_events"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    tenant_id: Mapped[int] = mapped_column(ForeignKey("tenants.id"), index=True, nullable=False)
+    actor_user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), index=True)
+    actor_type: Mapped[str] = mapped_column(Text, nullable=False, default="user")
+    action: Mapped[str] = mapped_column(Text, nullable=False, index=True)
+    resource_type: Mapped[str] = mapped_column(Text, nullable=False)
+    resource_id: Mapped[str | None] = mapped_column(Text)
+    metadata_json: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utc_now, nullable=False, index=True)

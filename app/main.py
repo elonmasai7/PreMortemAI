@@ -12,12 +12,14 @@ from fastapi.staticfiles import StaticFiles
 
 from app.api.routes_ai import router as ai_router
 from app.api.routes_auth import router as auth_router
+from app.api.routes_compliance import router as compliance_router
 from app.api.routes_dashboard import router as dashboard_router
 from app.api.routes_health import page_router as health_page_router
 from app.api.routes_health import router as health_router
 from app.api.routes_investigations import page_router as investigations_page_router
 from app.api.routes_investigations import router as investigations_router
 from app.api.routes_metrics import router as metrics_router
+from app.api.routes_queue import router as queue_router
 from app.api.routes_remediation import page_router as remediation_page_router
 from app.api.routes_remediation import router as remediation_router
 from app.api.routes_reports import page_router as reports_page_router
@@ -36,9 +38,10 @@ from app.exceptions import (
     ValidationError,
 )
 from app.logging_config import setup_logging
-from app.services.metrics_service import REQUEST_COUNT, REQUEST_LATENCY
+from app.services.metrics_service import REQUEST_COUNT, REQUEST_LATENCY, SLO_TRACKER
 from app.services.rate_limiter import RedisRateLimiter
 from app.services.redis_client import build_redis_client
+from app.services.tracing_service import build_traceparent, generate_span_id, generate_trace_id, parse_traceparent
 
 settings = get_settings()
 setup_logging(settings.log_level)
@@ -90,10 +93,21 @@ def _rate_limit_bucket(path: str) -> tuple[str, int] | None:
 async def request_id_middleware(request: Request, call_next):
     start = time.perf_counter()
     request_id = request.headers.get("x-request-id") or str(uuid.uuid4())
+    incoming_trace = request.headers.get("traceparent")
+    trace_id, parent_span = parse_traceparent(incoming_trace)
+    if not trace_id:
+        trace_id = generate_trace_id()
+    span_id = generate_span_id()
     request.state.request_id = request_id
+    request.state.trace_id = trace_id
+    request.state.span_id = span_id
+    request.state.parent_span_id = parent_span
     response = await call_next(request)
     response.headers["x-request-id"] = request_id
+    response.headers["x-trace-id"] = trace_id
+    response.headers["traceparent"] = build_traceparent(trace_id, span_id)
     elapsed = max(0.0, time.perf_counter() - start)
+    SLO_TRACKER.record(elapsed, response.status_code)
     REQUEST_LATENCY.labels(request.method, request.url.path).observe(elapsed)
     REQUEST_COUNT.labels(request.method, request.url.path, str(response.status_code)).inc()
     logger.info(
@@ -160,9 +174,11 @@ app.include_router(reports_page_router)
 
 app.include_router(health_router)
 app.include_router(auth_router)
+app.include_router(compliance_router)
 app.include_router(splunk_router)
 app.include_router(investigations_router)
 app.include_router(ai_router)
 app.include_router(remediation_router)
 app.include_router(reports_router)
 app.include_router(metrics_router)
+app.include_router(queue_router)

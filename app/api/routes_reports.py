@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.agents.report_agent import ReportAgent
 from app.dependencies import get_ai_provider, get_auth_context, get_db, require_roles
 from app.models import HumanDecision, Investigation, Report
+from app.services.audit_service import write_audit_for_context
 
 router = APIRouter(prefix="/api/reports", tags=["reports"])
 page_router = APIRouter(tags=["pages"])
@@ -67,6 +68,13 @@ def generate_report(
         markdown_body=markdown,
     )
     db.add(report)
+    write_audit_for_context(
+        db,
+        context,
+        action="report.generate",
+        resource_type="report",
+        metadata={"investigation_id": investigation_id},
+    )
     db.commit()
     db.refresh(report)
     return {"id": report.id, "investigation_id": report.investigation_id, "title": report.title}

@@ -9,6 +9,7 @@ from app.services.auth_service import AuthContext, decode_access_token, resolve_
 from app.services.authz import has_any_role
 from app.services.cache_service import RedisCache
 from app.services.mcp_client import MCPClient
+from app.services.rate_limiter import RedisRateLimiter
 from app.services.redis_client import build_redis_client
 from app.services.splunk_client import SplunkClient
 
@@ -50,7 +51,15 @@ def get_auth_context(
     authorization: str | None = Header(default=None),
     x_api_key: str | None = Header(default=None),
 ) -> AuthContext:
+    redis_client = build_redis_client(settings)
+    limiter = RedisRateLimiter(redis_client, window_seconds=settings.rate_limit_window_seconds) if redis_client else None
+
+    def _enforce_tenant_quota(tenant_id: int):
+        if limiter and limiter.is_limited(f"tenant:{tenant_id}:quota", settings.tenant_usage_quota_per_minute):
+            raise HTTPException(status_code=429, detail="Tenant usage quota exceeded for current window.")
+
     if not settings.auth_required:
+        _enforce_tenant_quota(1)
         return AuthContext(user_id=1, tenant_id=1, role="owner", auth_type="dev")
 
     if authorization and authorization.lower().startswith("bearer "):
@@ -66,6 +75,7 @@ def get_auth_context(
             raise HTTPException(status_code=401, detail="User account is inactive.")
         if user.tenant_id != tenant_id:
             raise HTTPException(status_code=401, detail="Token tenant mismatch.")
+        _enforce_tenant_quota(tenant_id)
         return AuthContext(user_id=user_id, tenant_id=tenant_id, role=role, auth_type="bearer")
 
     if x_api_key:
@@ -73,6 +83,7 @@ def get_auth_context(
         if not record:
             raise HTTPException(status_code=401, detail="Invalid API key.")
         role = record.role_override or "viewer"
+        _enforce_tenant_quota(record.tenant_id)
         return AuthContext(user_id=record.user_id, tenant_id=record.tenant_id, role=role, auth_type="api_key")
 
     raise HTTPException(status_code=401, detail="Authentication required.")

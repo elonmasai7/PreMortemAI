@@ -188,6 +188,8 @@ AI_MODEL=
 LOG_LEVEL=INFO
 ```
 
+Advanced startup/enterprise controls are also available in `.env.example`, including OIDC SSO settings, tenant usage quotas, compliance retention controls, KMS wiring, queue/cache tuning, and SLO/tracing configuration.
+
 ## 17) Installation
 ```bash
 python3 -m venv .venv

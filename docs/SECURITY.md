@@ -34,6 +34,7 @@ PreMortem AI is designed to minimize operational risk while handling sensitive t
 ### Authentication and Authorization
 - Bearer token auth support with signed access tokens.
 - API key auth support for service-to-service usage.
+- Optional OIDC login flow scaffold for enterprise identity provider integration.
 - Role-based access control (`viewer`, `analyst`, `admin`, `owner`).
 - Tenant-scoped authorization checks on investigation, remediation, and reports APIs.
 
@@ -41,6 +42,11 @@ PreMortem AI is designed to minimize operational risk while handling sensitive t
 - Tenant-aware schema columns (`tenant_id`) on operational state tables.
 - API routes filter by tenant scope and reject cross-tenant lookups.
 - Tenant-specific app settings and API keys.
+- Tenant-specific usage quota enforcement (Redis-backed when configured).
+
+### Governance Controls
+- Remediation approval policy enforcement validates evidence floor, restricted action keywords, and role requirements for high-risk/low-confidence actions.
+- Policy violations block approval and provide explicit error context.
 
 ### Error Handling and Data Exposure Controls
 - Controlled exception handlers provide actionable messages.
@@ -55,6 +61,11 @@ PreMortem AI is designed to minimize operational risk while handling sensitive t
 ### Queue and Rate Limit Controls
 - Redis-backed rate limiting for expensive endpoints when Redis is configured.
 - Queue-backed investigation execution support to isolate long-running analysis from request path.
+
+### Compliance Controls
+- Audit event records for auth, investigation, remediation, and report actions.
+- Audit export endpoint supports JSON/CSV output.
+- Retention cleanup script supports timed data lifecycle management.
 
 ### Template and UI Safety
 - Jinja2 autoescaping protects against HTML injection in rendered views.

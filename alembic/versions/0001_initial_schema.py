@@ -21,6 +21,9 @@ def upgrade() -> None:
         sa.Column("id", sa.Integer(), primary_key=True),
         sa.Column("name", sa.Text(), nullable=False, unique=True),
         sa.Column("slug", sa.Text(), nullable=False, unique=True),
+        sa.Column("oidc_domain", sa.Text()),
+        sa.Column("oidc_issuer", sa.Text()),
+        sa.Column("usage_quota_per_minute", sa.Integer(), nullable=False),
         sa.Column("is_active", sa.Boolean(), nullable=False, server_default=sa.true()),
         sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
     )
@@ -158,8 +161,26 @@ def upgrade() -> None:
     op.create_index("ix_app_settings_key", "app_settings", ["key"])
     op.create_index("ix_app_settings_tenant_id", "app_settings", ["tenant_id"])
 
+    op.create_table(
+        "audit_events",
+        sa.Column("id", sa.Integer(), primary_key=True),
+        sa.Column("tenant_id", sa.Integer(), sa.ForeignKey("tenants.id"), nullable=False),
+        sa.Column("actor_user_id", sa.Integer(), sa.ForeignKey("users.id")),
+        sa.Column("actor_type", sa.Text(), nullable=False),
+        sa.Column("action", sa.Text(), nullable=False),
+        sa.Column("resource_type", sa.Text(), nullable=False),
+        sa.Column("resource_id", sa.Text()),
+        sa.Column("metadata_json", sa.Text()),
+        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
+    )
+    op.create_index("ix_audit_events_tenant_id", "audit_events", ["tenant_id"])
+    op.create_index("ix_audit_events_actor_user_id", "audit_events", ["actor_user_id"])
+    op.create_index("ix_audit_events_action", "audit_events", ["action"])
+    op.create_index("ix_audit_events_created_at", "audit_events", ["created_at"])
+
 
 def downgrade() -> None:
+    op.drop_table("audit_events")
     op.drop_table("app_settings")
     op.drop_table("reports")
     op.drop_table("human_decisions")

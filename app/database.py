@@ -27,8 +27,15 @@ def init_db() -> None:
     if settings.database_url.startswith("sqlite"):
         with engine.connect() as connection:
             columns = [row[1] for row in connection.execute(text("PRAGMA table_info(investigations)"))]
+            tenant_columns = [row[1] for row in connection.execute(text("PRAGMA table_info(tenants)"))]
+            tables = {row[0] for row in connection.execute(text("SELECT name FROM sqlite_master WHERE type='table'"))}
         if columns and "tenant_id" not in columns:
             Base.metadata.drop_all(bind=engine)
+            Base.metadata.create_all(bind=engine)
+        if tenant_columns and ("usage_quota_per_minute" not in tenant_columns or "oidc_domain" not in tenant_columns):
+            Base.metadata.drop_all(bind=engine)
+            Base.metadata.create_all(bind=engine)
+        if "audit_events" not in tables:
             Base.metadata.create_all(bind=engine)
 
     db = SessionLocal()

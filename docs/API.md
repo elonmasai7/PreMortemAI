@@ -96,6 +96,12 @@ Admin/owner only. Creates a new API key.
 ### POST `/api/auth/users`
 Admin/owner only. Creates a tenant user.
 
+### GET `/api/auth/oidc/start`
+Returns OIDC authorization URL when OIDC is enabled.
+
+### GET `/api/auth/oidc/callback`
+Handles OIDC callback, maps identity to tenant, and returns platform access token.
+
 ---
 
 ## Splunk APIs
@@ -329,6 +335,29 @@ Returns markdown text (`text/plain` response).
 
 ### GET `/api/metrics`
 Returns Prometheus-compatible metrics payload.
+
+### GET `/api/metrics/slo`
+Returns SLO/error-budget summary from in-process request telemetry window.
+
+---
+
+## Queue API
+
+### GET `/api/queue/metrics`
+Admin/owner endpoint for queue depth, failed jobs, and oldest job age.
+
+---
+
+## Compliance API
+
+### GET `/api/compliance/audit-export`
+Admin/owner export endpoint for audit events (`format=json|csv`, `days=1..365`).
+
+### GET `/api/compliance/retention/status`
+Returns retention configuration details.
+
+### GET `/api/compliance/kms/status`
+Returns key-management configuration status.
 
 ---
 

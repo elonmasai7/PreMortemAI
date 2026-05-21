@@ -7,6 +7,7 @@ from app.config import Settings
 from app.dependencies import get_ai_provider, get_auth_context, get_db, get_settings_dep, get_splunk_client, require_roles
 from app.models import Investigation
 from app.schemas.investigation import InvestigationCreate, InvestigationRead
+from app.services.audit_service import write_audit_for_context
 from app.services.investigation_pipeline import run_investigation_pipeline
 from app.services.queue_service import enqueue_investigation_run
 
@@ -47,6 +48,13 @@ def create_investigation(
 ):
     item = Investigation(tenant_id=context.tenant_id, title=payload.title, service_name=payload.service_name, status="new")
     db.add(item)
+    write_audit_for_context(
+        db,
+        context,
+        action="investigation.create",
+        resource_type="investigation",
+        metadata={"service_name": payload.service_name, "title": payload.title},
+    )
     db.commit()
     db.refresh(item)
     return item
@@ -77,6 +85,14 @@ def run_investigation(
     if job_id:
         item.status = "queued"
         db.add(item)
+        write_audit_for_context(
+            db,
+            context,
+            action="investigation.enqueue",
+            resource_type="investigation",
+            resource_id=str(item.id),
+            metadata={"job_id": job_id},
+        )
         db.commit()
         db.refresh(item)
         return item
@@ -111,6 +127,14 @@ def delete_investigation(
     item = get_investigation_or_404(db, investigation_id)
     if item.tenant_id != context.tenant_id:
         raise HTTPException(status_code=404, detail="Investigation not found.")
+    write_audit_for_context(
+        db,
+        context,
+        action="investigation.delete",
+        resource_type="investigation",
+        resource_id=str(item.id),
+        metadata={"service_name": item.service_name},
+    )
     db.delete(item)
     db.commit()
     return None

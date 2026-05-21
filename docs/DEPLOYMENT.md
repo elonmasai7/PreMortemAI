@@ -63,10 +63,19 @@
 - Configure Redis (`REDIS_URL`) for queue and cache/rate-limiting features.
 - Enable investigation worker queue with `QUEUE_ENABLED=true`.
 
+### Autoscaling
+- API horizontal scaling baseline: `deploy/k8s/api-hpa.yaml`.
+- Worker queue-based scaling baseline (KEDA): `deploy/k8s/worker-keda-scaledobject.yaml`.
+
 ## Container Profiles
 - Development profile: `docker-compose.dev.yml`
 - Production profile: `docker-compose.prod.yml`
 - Kubernetes manifests: `deploy/k8s/`
+
+## Compliance Operations
+- Export audit events: `GET /api/compliance/audit-export`.
+- Run retention cleanup: `make retention`.
+- KMS integration status: `GET /api/compliance/kms/status`.
 
 ## Health and Readiness
 Use:

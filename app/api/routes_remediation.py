@@ -3,9 +3,12 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
-from app.dependencies import get_auth_context, get_db, require_roles
+from app.config import Settings
+from app.dependencies import get_auth_context, get_db, get_settings_dep, require_roles
 from app.models import HumanDecision, Investigation, RemediationRecommendation
 from app.schemas.remediation import DecisionRequest
+from app.services.audit_service import write_audit_for_context
+from app.services.policy_service import enforce_remediation_approval_policy
 from app.services.remediation_service import apply_decision, build_decision_audit
 
 router = APIRouter(prefix="/api/remediation", tags=["remediation"])
@@ -58,11 +61,21 @@ def approve(
     investigation_id: int,
     payload: DecisionRequest,
     db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings_dep),
     context=Depends(require_roles("analyst", "admin", "owner")),
 ):
     recommendation = _get_recommendation(db, investigation_id, context.tenant_id)
+    enforce_remediation_approval_policy(db, context, recommendation, settings)
     apply_decision(recommendation, "approve")
     db.add(build_decision_audit(recommendation.id, investigation_id, context.tenant_id, "approve", payload.note))
+    write_audit_for_context(
+        db,
+        context,
+        action="remediation.approve",
+        resource_type="remediation_recommendation",
+        resource_id=str(recommendation.id),
+        metadata={"investigation_id": investigation_id, "note": payload.note},
+    )
     db.add(recommendation)
     db.commit()
     return {"status": "approved", "recommendation_id": recommendation.id}
@@ -78,6 +91,14 @@ def reject(
     recommendation = _get_recommendation(db, investigation_id, context.tenant_id)
     apply_decision(recommendation, "reject")
     db.add(build_decision_audit(recommendation.id, investigation_id, context.tenant_id, "reject", payload.note))
+    write_audit_for_context(
+        db,
+        context,
+        action="remediation.reject",
+        resource_type="remediation_recommendation",
+        resource_id=str(recommendation.id),
+        metadata={"investigation_id": investigation_id, "note": payload.note},
+    )
     db.add(recommendation)
     db.commit()
     return {"status": "rejected", "recommendation_id": recommendation.id}
