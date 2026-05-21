@@ -30,3 +30,7 @@ def test_create_and_run_investigation():
         list_resp = client.get("/api/investigations")
         assert list_resp.status_code == 200
         assert isinstance(list_resp.json(), list)
+
+        paged_resp = client.get("/api/investigations?limit=1&offset=0")
+        assert paged_resp.status_code == 200
+        assert len(paged_resp.json()) <= 1

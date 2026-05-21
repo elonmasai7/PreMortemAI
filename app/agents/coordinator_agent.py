@@ -1,5 +1,3 @@
-from datetime import datetime
-
 from sqlalchemy.orm import Session
 
 from app.agents.blast_radius_agent import BlastRadiusAgent
@@ -9,6 +7,7 @@ from app.agents.report_agent import ReportAgent
 from app.agents.root_cause_agent import RootCauseAgent
 from app.agents.telemetry_agent import TelemetryAgent
 from app.models import Evidence, Investigation, RemediationRecommendation, Report, RootCauseCandidate
+from app.time_utils import utc_now
 
 
 class CoordinatorAgent:
@@ -38,7 +37,7 @@ class CoordinatorAgent:
                     investigation_id=investigation.id,
                     source="splunk",
                     spl_query=spl_query,
-                    event_time=datetime.utcnow(),
+                    event_time=utc_now(),
                     evidence_type="telemetry",
                     content=str(safe_row),
                     confidence=0.6,

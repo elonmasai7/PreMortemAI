@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Form, HTTPException, Request
+from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
@@ -41,8 +41,19 @@ def build_coordinator(settings: Settings, splunk_client, ai_provider) -> Coordin
 
 
 @router.get("", response_model=list[InvestigationRead])
-def list_investigations(db: Session = Depends(get_db)):
-    return db.query(Investigation).order_by(Investigation.created_at.desc()).all()
+def list_investigations(
+    db: Session = Depends(get_db),
+    limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
+    status: str | None = Query(default=None),
+    service_name: str | None = Query(default=None),
+):
+    query = db.query(Investigation)
+    if status:
+        query = query.filter(Investigation.status == status)
+    if service_name:
+        query = query.filter(Investigation.service_name == service_name)
+    return query.order_by(Investigation.created_at.desc()).offset(offset).limit(limit).all()
 
 
 @router.post("", response_model=InvestigationRead, status_code=201)

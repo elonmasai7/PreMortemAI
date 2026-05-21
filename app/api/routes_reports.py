@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import HTMLResponse, PlainTextResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
@@ -13,8 +13,16 @@ templates = Jinja2Templates(directory="app/templates")
 
 
 @router.get("")
-def list_reports(db: Session = Depends(get_db)):
-    reports = db.query(Report).order_by(Report.created_at.desc()).all()
+def list_reports(
+    db: Session = Depends(get_db),
+    limit: int = Query(default=50, ge=1, le=200),
+    offset: int = Query(default=0, ge=0),
+    investigation_id: int | None = Query(default=None),
+):
+    query = db.query(Report)
+    if investigation_id is not None:
+        query = query.filter(Report.investigation_id == investigation_id)
+    reports = query.order_by(Report.created_at.desc()).offset(offset).limit(limit).all()
     return [
         {
             "id": report.id,

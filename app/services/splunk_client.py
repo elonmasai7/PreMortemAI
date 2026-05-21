@@ -1,3 +1,4 @@
+import json
 import time
 from typing import Any
 
@@ -130,7 +131,7 @@ class SplunkClient:
         rows: list[dict[str, Any]] = []
         for line in lines:
             try:
-                parsed = httpx.Response(200, text=line).json()
+                parsed = json.loads(line)
             except ValueError:
                 continue
             result = parsed.get("result")

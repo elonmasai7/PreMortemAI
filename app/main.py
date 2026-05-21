@@ -1,4 +1,9 @@
 import logging
+import time
+import uuid
+from collections import defaultdict, deque
+from contextlib import asynccontextmanager
+from threading import Lock
 
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
@@ -34,8 +39,51 @@ settings = get_settings()
 setup_logging(settings.log_level)
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title=settings.app_name)
+_rate_limit_lock = Lock()
+_rate_limit_windows: dict[tuple[str, str], deque[float]] = defaultdict(deque)
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    init_db()
+    logger.info("Application started")
+    yield
+
+
+app = FastAPI(title=settings.app_name, lifespan=lifespan)
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
+
+
+def _is_rate_limited(ip: str, bucket: str, limit: int, window_seconds: int = 60) -> bool:
+    now = time.monotonic()
+    key = (ip, bucket)
+    with _rate_limit_lock:
+        hits = _rate_limit_windows[key]
+        while hits and (now - hits[0]) > window_seconds:
+            hits.popleft()
+        if len(hits) >= limit:
+            return True
+        hits.append(now)
+    return False
+
+
+def _rate_limit_bucket(path: str) -> tuple[str, int] | None:
+    if path == "/api/splunk/search":
+        return ("splunk-search", 30)
+    if path.startswith("/api/investigations/") and (path.endswith("/run") or path.endswith("/refresh")):
+        return ("investigation-run", 30)
+    if path.startswith("/api/ai/"):
+        return ("ai-api", 60)
+    return None
+
+
+@app.middleware("http")
+async def request_id_middleware(request: Request, call_next):
+    request_id = request.headers.get("x-request-id") or str(uuid.uuid4())
+    request.state.request_id = request_id
+    response = await call_next(request)
+    response.headers["x-request-id"] = request_id
+    return response
 
 
 @app.middleware("http")
@@ -46,10 +94,22 @@ async def request_size_limit(request: Request, call_next):
     return await call_next(request)
 
 
-@app.on_event("startup")
-def startup() -> None:
-    init_db()
-    logger.info("Application started")
+@app.middleware("http")
+async def write_api_rate_limit(request: Request, call_next):
+    bucket_config = _rate_limit_bucket(request.url.path)
+    if bucket_config:
+        bucket, limit = bucket_config
+        client_ip = request.client.host if request.client else "unknown"
+        if _is_rate_limited(client_ip, bucket, limit):
+            return JSONResponse(
+                status_code=429,
+                content={
+                    "detail": "Rate limit exceeded for this endpoint.",
+                    "next_step": "Retry after one minute or reduce request frequency.",
+                },
+                headers={"Retry-After": "60"},
+            )
+    return await call_next(request)
 
 
 @app.exception_handler(ConfigurationError)
@@ -60,13 +120,13 @@ def startup() -> None:
 @app.exception_handler(InvestigationNotFoundError)
 @app.exception_handler(ValidationError)
 async def controlled_exception_handler(request: Request, exc: Exception):
-    logger.warning("Handled application error: %s", exc)
+    logger.warning("Handled application error: %s [request_id=%s]", exc, getattr(request.state, "request_id", "n/a"))
     return JSONResponse(status_code=400, content={"detail": str(exc), "next_step": "Check setup page and route input values."})
 
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
-    logger.warning("Request validation error: %s", exc)
+    logger.warning("Request validation error: %s [request_id=%s]", exc, getattr(request.state, "request_id", "n/a"))
     return JSONResponse(status_code=422, content={"detail": "Invalid request payload.", "errors": exc.errors()})
 
 
