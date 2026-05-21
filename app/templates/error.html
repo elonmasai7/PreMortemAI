@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card">
+  <h2>Service Health</h2>
+  <table>
+    <thead><tr><th>Component</th><th>Status</th><th>Detail</th></tr></thead>
+    <tbody>
+      {% for key, value in health.items() %}
+      {% if value is mapping %}
+      <tr><td>{{ key }}</td><td>{{ value.status }}</td><td>{{ value.detail }}</td></tr>
+      {% endif %}
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card">
+  <h2>Incident Summary</h2>
+  <p><strong>{{ item.title }}</strong> | Service: {{ item.service_name }} | Status: {{ item.status }}</p>
+  <p>Forecasted risk: {{ item.risk_score }} ({{ item.risk_level }})</p>
+  <p>{{ item.forecast_summary }}</p>
+  <form method="post" action="/api/investigations/{{ item.id }}/run">
+    <button type="submit">Run Investigation</button>
+  </form>
+</section>
+
+<section class="card">
+  <h2>Evidence Timeline</h2>
+  <ul class="timeline">
+    {% for ev in evidence %}
+    <li><span>{{ ev.created_at }}</span> {{ ev.content }}</li>
+    {% else %}
+    <li>No evidence captured yet.</li>
+    {% endfor %}
+  </ul>
+</section>
+
+<section class="card">
+  <h2>SPL Queries Executed</h2>
+  <table>
+    <thead><tr><th>Time</th><th>Query</th><th>Raw Evidence Snippet</th></tr></thead>
+    <tbody>
+      {% for ev in evidence %}
+      <tr><td>{{ ev.created_at }}</td><td><code>{{ ev.spl_query or 'n/a' }}</code></td><td>{{ ev.content }}</td></tr>
+      {% else %}
+      <tr><td colspan="3">No query evidence yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<section class="grid cards-2">
+  <article class="card">
+    <h2>Root Cause Ranking</h2>
+    <table>
+      <thead><tr><th>Rank</th><th>Cause</th><th>Confidence</th><th>Evidence</th></tr></thead>
+      <tbody>
+      {% for cause in root_causes %}
+      <tr><td>{{ cause.rank }}</td><td>{{ cause.cause }}</td><td>{{ cause.confidence }}</td><td>{{ cause.evidence_summary }}</td></tr>
+      {% else %}
+      <tr><td colspan="4">No root cause ranking yet.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </article>
+  <article class="card">
+    <h2>Blast Radius</h2>
+    <p>{{ item.blast_radius_summary or "Not generated" }}</p>
+    <h3>AI Reasoning Summary</h3>
+    <p>{{ item.root_cause_summary or "No AI summary yet." }}</p>
+  </article>
+</section>
+
+<section class="card">
+  <h2>Recommended Remediation</h2>
+  {% for rec in recommendations %}
+  <p><strong>{{ rec.action_type }}</strong> - {{ rec.action_summary }}</p>
+  <p>Risk of action: {{ rec.risk_of_action }}</p>
+  <p>Risk of inaction: {{ rec.risk_of_inaction }}</p>
+  <p><a href="/remediation/{{ item.id }}">Go to approval page</a></p>
+  {% else %}
+  <p>No remediation recommendation yet.</p>
+  {% endfor %}
+</section>
+
+<section class="card">
+  <h2>Human Decision History</h2>
+  <ul>
+    {% for d in decisions %}
+      <li>{{ d.decided_at }} - {{ d.decision }} - {{ d.note }}</li>
+    {% else %}
+      <li>No decisions yet.</li>
+    {% endfor %}
+  </ul>
+  <h3>Generated Reports</h3>
+  <ul>
+    {% for r in reports %}
+      <li><a href="/api/reports/{{ r.id }}/markdown">{{ r.title }}</a></li>
+    {% else %}
+      <li>No reports yet.</li>
+    {% endfor %}
+  </ul>
+</section>
+{% endblock %}

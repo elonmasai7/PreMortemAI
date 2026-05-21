@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="grid cards-2">
+  <article class="card">
+    <h2>Splunk</h2>
+    <p>Base URL: <code>{{ settings.splunk_base_url or "missing" }}</code></p>
+    <p>Auth: {% if settings.splunk_token %}token{% elif settings.splunk_username and settings.splunk_password %}username/password{% else %}missing{% endif %}</p>
+    <p>Status: <span class="badge badge-info">{{ splunk_check.status or splunk_check.get('status') }}</span></p>
+    <p>{{ splunk_check.detail or splunk_check.get('detail', '') }}</p>
+  </article>
+  <article class="card">
+    <h2>Platform</h2>
+    <p>AI Provider: <code>{{ settings.ai_provider }}</code></p>
+    <p>MCP: <span class="badge badge-info">{{ mcp_status.status }}</span> {{ mcp_status.detail }}</p>
+    <p>SQLite: <span class="badge badge-ok">{{ database_status }}</span></p>
+  </article>
+</section>
+
+<section class="card">
+  <h2>Required Environment Variables</h2>
+  {% if missing %}
+  <ul>
+    {% for item in missing %}
+    <li>{{ item }}</li>
+    {% endfor %}
+  </ul>
+  <p>Update your environment, then refresh this page.</p>
+  {% else %}
+  <p>Required core settings are present.</p>
+  {% endif %}
+</section>
+{% endblock %}

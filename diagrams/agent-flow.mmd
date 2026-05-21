@@ -1,0 +1,21 @@
+sequenceDiagram
+    participant C as Coordinator Agent
+    participant T as Telemetry Agent
+    participant F as Forecast Agent
+    participant R as Root Cause Agent
+    participant B as Blast Radius Agent
+    participant M as Remediation Agent
+    participant P as Report Agent
+
+    C->>T: Collect evidence from Splunk
+    T-->>C: Normalized telemetry rows
+    C->>F: Forecast risk
+    F-->>C: Risk score + level
+    C->>R: Rank root causes
+    R-->>C: Cause candidates + confidence
+    C->>B: Estimate blast radius
+    B-->>C: Impact summary
+    C->>M: Build remediation plan
+    M-->>C: Human-approved recommendation
+    C->>P: Generate report
+    P-->>C: Markdown report

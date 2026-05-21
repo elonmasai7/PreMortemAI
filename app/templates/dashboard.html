@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="grid cards-3">
+  <article class="card">
+    <h2>Operational Risk</h2>
+    <p class="metric">{{ avg_risk }}</p>
+  </article>
+  <article class="card">
+    <h2>Splunk Status</h2>
+    <p><span class="badge badge-info">{{ splunk_status }}</span></p>
+  </article>
+  <article class="card">
+    <h2>AI Provider</h2>
+    <p><span class="badge badge-warn">{{ ai_status }}</span></p>
+  </article>
+</section>
+
+{% if no_data_message %}
+<section class="card">
+  <p>{{ no_data_message }}</p>
+</section>
+{% endif %}
+
+<section class="card">
+  <h2>Active Predicted Incidents</h2>
+  <table>
+    <thead>
+      <tr><th>ID</th><th>Service</th><th>Status</th><th>Risk</th><th>Updated</th></tr>
+    </thead>
+    <tbody>
+      {% for item in investigations %}
+      <tr>
+        <td><a href="/investigations/{{ item.id }}">{{ item.id }}</a></td>
+        <td>{{ item.service_name }}</td>
+        <td>{{ item.status }}</td>
+        <td>{{ item.risk_score }}</td>
+        <td>{{ item.updated_at }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5">No investigations yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<section class="grid cards-2">
+  <article class="card">
+    <h2>Recent Anomaly Signals</h2>
+    <ul>
+      {% for signal in anomaly_signals %}
+      <li>{{ signal }}</li>
+      {% else %}
+      <li>No anomaly summaries yet.</li>
+      {% endfor %}
+    </ul>
+  </article>
+  <article class="card">
+    <h2>Services At Risk</h2>
+    <ul>
+      {% for svc in services_at_risk %}
+      <li>{{ svc }}</li>
+      {% else %}
+      <li>No high-risk services currently flagged.</li>
+      {% endfor %}
+    </ul>
+  </article>
+</section>
+
+<section class="card">
+  <h2>Recommended Actions Awaiting Approval</h2>
+  <table>
+    <thead><tr><th>Investigation</th><th>Action Type</th><th>Status</th><th>Confidence</th></tr></thead>
+    <tbody>
+      {% for rec in pending_actions %}
+      <tr>
+        <td><a href="/remediation/{{ rec.investigation_id }}">{{ rec.investigation_id }}</a></td>
+        <td>{{ rec.action_type }}</td>
+        <td>{{ rec.status }}</td>
+        <td>{{ rec.confidence }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="4">No pending recommendations.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

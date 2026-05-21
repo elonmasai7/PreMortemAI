@@ -1,0 +1,9 @@
+flowchart LR
+    User[Operator / SRE] --> UI[Jinja2 UI]
+    UI --> API[FastAPI Routes]
+    API --> Agents[Internal Agent System]
+    API --> DB[(SQLite)]
+    Agents --> Splunk[Splunk REST + Search Jobs API]
+    Agents --> AI[AI Provider Abstraction]
+    Agents --> DB
+    API --> Health[Health + Setup Checks]

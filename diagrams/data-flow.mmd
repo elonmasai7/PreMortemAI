@@ -1,0 +1,13 @@
+flowchart TD
+    A[Splunk Index Telemetry] --> B[Telemetry Agent]
+    B --> C[Evidence Records]
+    C --> D[Forecast Agent]
+    C --> E[Root Cause Agent]
+    C --> F[Blast Radius Agent]
+    D --> G[Investigation State]
+    E --> G
+    F --> G
+    G --> H[Remediation Agent]
+    H --> I[Human Decision]
+    I --> J[Report Agent]
+    J --> K[Report Markdown]

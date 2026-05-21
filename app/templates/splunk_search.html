@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card">
+  <h2>Search Workbench</h2>
+  <form method="post" action="/splunk/search" class="form-grid">
+    <label>SPL Query
+      <textarea name="query" rows="6" required>{{ query }}</textarea>
+    </label>
+    <label>Save as template (optional)
+      <input type="text" name="save_template_name" placeholder="example: service_error_custom">
+    </label>
+    <button type="submit">Run Live Search</button>
+  </form>
+  {% if error %}
+    <p class="error">{{ error }}</p>
+  {% endif %}
+</section>
+
+<section class="card">
+  <h2>Results</h2>
+  <table>
+    <thead>
+      <tr>
+        {% if rows %}
+          {% for key in rows[0].keys() %}<th>{{ key }}</th>{% endfor %}
+        {% else %}
+          <th>No results</th>
+        {% endif %}
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+      <tr>{% for value in row.values() %}<td>{{ value }}</td>{% endfor %}</tr>
+      {% else %}
+      <tr><td>No rows to display.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+
+<section class="card">
+  <h2>Saved Query Templates</h2>
+  <table>
+    <thead><tr><th>Name</th><th>Query</th></tr></thead>
+    <tbody>
+      {% for item in saved %}
+      <tr><td>{{ item.key.replace('spl_template::', '') }}</td><td><code>{{ item.value }}</code></td></tr>
+      {% else %}
+      <tr><td colspan="2">No saved templates yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

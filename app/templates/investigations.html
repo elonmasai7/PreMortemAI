@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card">
+  <h2>Create Investigation</h2>
+  <form method="post" action="/investigations/new" class="form-grid">
+    <label>Title <input type="text" name="title" required></label>
+    <label>Service Name <input type="text" name="service_name" required></label>
+    <button type="submit">Create</button>
+  </form>
+</section>
+
+<section class="card">
+  <h2>Investigations</h2>
+  <table>
+    <thead><tr><th>ID</th><th>Status</th><th>Service</th><th>Risk</th><th>Created</th><th>Updated</th><th>Root Cause Confidence</th><th>Action Required</th></tr></thead>
+    <tbody>
+      {% for item in items %}
+      <tr>
+        <td><a href="/investigations/{{ item.id }}">{{ item.id }}</a></td>
+        <td>{{ item.status }}</td>
+        <td>{{ item.service_name }}</td>
+        <td>{{ item.risk_score }}</td>
+        <td>{{ item.created_at }}</td>
+        <td>{{ item.updated_at }}</td>
+        <td>{% if item.root_causes %}{{ item.root_causes[0].confidence }}{% else %}n/a{% endif %}</td>
+        <td><a href="/remediation/{{ item.id }}">Review</a></td>
+      </tr>
+      {% else %}
+      <tr><td colspan="8">No investigations found.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}

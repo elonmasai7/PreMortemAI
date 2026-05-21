@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card">
+  <h2>Recommended Action</h2>
+  <p><strong>{{ recommendation.action_type }}</strong>: {{ recommendation.action_summary }}</p>
+  <p>Confidence: {{ recommendation.confidence }}</p>
+  <p>Risk of action: {{ recommendation.risk_of_action }}</p>
+  <p>Risk of inaction: {{ recommendation.risk_of_inaction }}</p>
+  <p>Status: <span class="badge badge-info">{{ recommendation.status }}</span></p>
+</section>
+
+<section class="grid cards-2">
+  <article class="card">
+    <h2>Approve</h2>
+    <form method="post" action="/remediation/{{ investigation.id }}/approve" class="form-grid">
+      <label>Note
+        <textarea name="note" rows="4" placeholder="Approval rationale"></textarea>
+      </label>
+      <button type="submit">Approve</button>
+    </form>
+  </article>
+  <article class="card">
+    <h2>Reject</h2>
+    <form method="post" action="/remediation/{{ investigation.id }}/reject" class="form-grid">
+      <label>Note
+        <textarea name="note" rows="4" placeholder="Rejection rationale"></textarea>
+      </label>
+      <button class="danger" type="submit">Reject</button>
+    </form>
+  </article>
+</section>
+
+<section class="card">
+  <h2>Decision Audit Log</h2>
+  <table>
+    <thead><tr><th>Time</th><th>Decision</th><th>Note</th></tr></thead>
+    <tbody>
+      {% for d in decisions %}
+      <tr><td>{{ d.decided_at }}</td><td>{{ d.decision }}</td><td>{{ d.note }}</td></tr>
+      {% else %}
+      <tr><td colspan="3">No decisions yet.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</section>
+{% endblock %}
