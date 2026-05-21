@@ -31,6 +31,17 @@ PreMortem AI is designed to minimize operational risk while handling sensitive t
 - Baseline disallow list for risky SPL operators.
 - Request body size limit middleware (413 for oversized payloads).
 
+### Authentication and Authorization
+- Bearer token auth support with signed access tokens.
+- API key auth support for service-to-service usage.
+- Role-based access control (`viewer`, `analyst`, `admin`, `owner`).
+- Tenant-scoped authorization checks on investigation, remediation, and reports APIs.
+
+### Multi-Tenant Boundary Controls
+- Tenant-aware schema columns (`tenant_id`) on operational state tables.
+- API routes filter by tenant scope and reject cross-tenant lookups.
+- Tenant-specific app settings and API keys.
+
 ### Error Handling and Data Exposure Controls
 - Controlled exception handlers provide actionable messages.
 - No stack trace/secret dump behavior in API response payloads.
@@ -40,6 +51,10 @@ PreMortem AI is designed to minimize operational risk while handling sensitive t
 - No endpoint executes destructive infra actions.
 - Remediation remains recommendation-only for hackathon scope.
 - Approve/reject actions are recorded in `HumanDecision` audit records.
+
+### Queue and Rate Limit Controls
+- Redis-backed rate limiting for expensive endpoints when Redis is configured.
+- Queue-backed investigation execution support to isolate long-running analysis from request path.
 
 ### Template and UI Safety
 - Jinja2 autoescaping protects against HTML injection in rendered views.
@@ -62,6 +77,11 @@ PreMortem AI is designed to minimize operational risk while handling sensitive t
 - Use dedicated least-privilege Splunk service account/token.
 - Rotate tokens regularly.
 - Restrict file permissions for local SQLite file.
+- Enforce `AUTH_REQUIRED=true` outside local development.
+
+## Security Automation
+- CI security workflow includes dependency audit (`pip-audit`).
+- Secrets scanning via GitHub Actions (`gitleaks`).
 
 ## Known Limitations
 - SPL validation is policy-baseline, not full SPL sandboxing.

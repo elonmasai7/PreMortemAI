@@ -16,6 +16,12 @@ All API routes are JSON unless explicitly marked otherwise.
 }
 ```
 
+## Authentication
+- When `AUTH_REQUIRED=true`, API requests must include one of:
+  - `Authorization: Bearer <access_token>`
+  - `X-API-Key: <api_key>`
+- When `AUTH_REQUIRED=false`, development mode auth context is used.
+
 ---
 
 ## Health APIs
@@ -53,6 +59,42 @@ Response example:
 ```json
 { "alive": true }
 ```
+
+---
+
+## Auth APIs
+
+### POST `/api/auth/login`
+Request:
+```json
+{
+  "tenant_slug": "default",
+  "username": "admin",
+  "password": "admin12345"
+}
+```
+
+Response:
+```json
+{
+  "access_token": "<token>",
+  "token_type": "bearer",
+  "tenant_id": 1,
+  "role": "owner"
+}
+```
+
+### GET `/api/auth/me`
+Returns resolved auth context.
+
+### GET `/api/auth/api-keys`
+Admin/owner only. Lists tenant API keys.
+
+### POST `/api/auth/api-keys`
+Admin/owner only. Creates a new API key.
+
+### POST `/api/auth/users`
+Admin/owner only. Creates a tenant user.
 
 ---
 
@@ -120,6 +162,12 @@ Response:
 
 ### GET `/api/investigations`
 Returns all investigations sorted by creation date (descending).
+
+Query params:
+- `limit` (1-200)
+- `offset` (>=0)
+- `status` (optional)
+- `service_name` (optional)
 
 ### POST `/api/investigations`
 Create a new investigation.
@@ -256,6 +304,11 @@ Response:
 ### GET `/api/reports`
 Returns report list metadata.
 
+Query params:
+- `limit` (1-200)
+- `offset` (>=0)
+- `investigation_id` (optional)
+
 ### POST `/api/reports/{investigation_id}/generate`
 Generate a new report for the target investigation.
 
@@ -269,6 +322,13 @@ Fetch full report object including markdown body.
 
 ### GET `/api/reports/{report_id}/markdown`
 Returns markdown text (`text/plain` response).
+
+---
+
+## Metrics API
+
+### GET `/api/metrics`
+Returns Prometheus-compatible metrics payload.
 
 ---
 

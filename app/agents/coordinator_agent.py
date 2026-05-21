@@ -34,6 +34,7 @@ class CoordinatorAgent:
             safe_row = {k: v for k, v in row.items() if not k.startswith("__")}
             db.add(
                 Evidence(
+                    tenant_id=investigation.tenant_id,
                     investigation_id=investigation.id,
                     source="splunk",
                     spl_query=spl_query,
@@ -54,6 +55,7 @@ class CoordinatorAgent:
         for candidate in candidates:
             db.add(
                 RootCauseCandidate(
+                    tenant_id=investigation.tenant_id,
                     investigation_id=investigation.id,
                     cause=candidate["cause"],
                     confidence=float(candidate["confidence"]),
@@ -68,6 +70,7 @@ class CoordinatorAgent:
         remediation = self.remediation_agent.run(rows)
         db.add(
             RemediationRecommendation(
+                tenant_id=investigation.tenant_id,
                 investigation_id=investigation.id,
                 action_type=remediation["action_type"],
                 action_summary=remediation["action_summary"],
@@ -84,7 +87,14 @@ class CoordinatorAgent:
             investigation.blast_radius_summary or "",
             [],
         )
-        db.add(Report(investigation_id=investigation.id, title=f"Report for {investigation.title}", markdown_body=report_md))
+        db.add(
+            Report(
+                tenant_id=investigation.tenant_id,
+                investigation_id=investigation.id,
+                title=f"Report for {investigation.title}",
+                markdown_body=report_md,
+            )
+        )
 
         investigation.status = "analyzed"
         db.add(investigation)

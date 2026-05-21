@@ -3,7 +3,7 @@ from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
-from app.dependencies import get_db
+from app.dependencies import get_auth_context, get_db, require_roles
 from app.models import HumanDecision, Investigation, RemediationRecommendation
 from app.schemas.remediation import DecisionRequest
 from app.services.remediation_service import apply_decision, build_decision_audit
@@ -13,10 +13,13 @@ page_router = APIRouter(tags=["pages"])
 templates = Jinja2Templates(directory="app/templates")
 
 
-def _get_recommendation(db: Session, investigation_id: int) -> RemediationRecommendation:
+def _get_recommendation(db: Session, investigation_id: int, tenant_id: int) -> RemediationRecommendation:
     recommendation = (
         db.query(RemediationRecommendation)
-        .filter(RemediationRecommendation.investigation_id == investigation_id)
+        .filter(
+            RemediationRecommendation.investigation_id == investigation_id,
+            RemediationRecommendation.tenant_id == tenant_id,
+        )
         .order_by(RemediationRecommendation.created_at.desc())
         .first()
     )
@@ -26,11 +29,11 @@ def _get_recommendation(db: Session, investigation_id: int) -> RemediationRecomm
 
 
 @router.get("/{investigation_id}")
-def get_remediation(investigation_id: int, db: Session = Depends(get_db)):
-    recommendation = _get_recommendation(db, investigation_id)
+def get_remediation(investigation_id: int, db: Session = Depends(get_db), context=Depends(get_auth_context)):
+    recommendation = _get_recommendation(db, investigation_id, context.tenant_id)
     decisions = (
         db.query(HumanDecision)
-        .filter(HumanDecision.recommendation_id == recommendation.id)
+        .filter(HumanDecision.recommendation_id == recommendation.id, HumanDecision.tenant_id == context.tenant_id)
         .order_by(HumanDecision.decided_at.desc())
         .all()
     )
@@ -51,34 +54,46 @@ def get_remediation(investigation_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/{investigation_id}/approve")
-def approve(investigation_id: int, payload: DecisionRequest, db: Session = Depends(get_db)):
-    recommendation = _get_recommendation(db, investigation_id)
+def approve(
+    investigation_id: int,
+    payload: DecisionRequest,
+    db: Session = Depends(get_db),
+    context=Depends(require_roles("analyst", "admin", "owner")),
+):
+    recommendation = _get_recommendation(db, investigation_id, context.tenant_id)
     apply_decision(recommendation, "approve")
-    db.add(build_decision_audit(recommendation.id, investigation_id, "approve", payload.note))
+    db.add(build_decision_audit(recommendation.id, investigation_id, context.tenant_id, "approve", payload.note))
     db.add(recommendation)
     db.commit()
     return {"status": "approved", "recommendation_id": recommendation.id}
 
 
 @router.post("/{investigation_id}/reject")
-def reject(investigation_id: int, payload: DecisionRequest, db: Session = Depends(get_db)):
-    recommendation = _get_recommendation(db, investigation_id)
+def reject(
+    investigation_id: int,
+    payload: DecisionRequest,
+    db: Session = Depends(get_db),
+    context=Depends(require_roles("analyst", "admin", "owner")),
+):
+    recommendation = _get_recommendation(db, investigation_id, context.tenant_id)
     apply_decision(recommendation, "reject")
-    db.add(build_decision_audit(recommendation.id, investigation_id, "reject", payload.note))
+    db.add(build_decision_audit(recommendation.id, investigation_id, context.tenant_id, "reject", payload.note))
     db.add(recommendation)
     db.commit()
     return {"status": "rejected", "recommendation_id": recommendation.id}
 
 
 @page_router.get("/remediation/{investigation_id}", response_class=HTMLResponse)
-def remediation_page(request: Request, investigation_id: int, db: Session = Depends(get_db)):
+def remediation_page(request: Request, investigation_id: int, db: Session = Depends(get_db), context=Depends(get_auth_context)):
     investigation = db.get(Investigation, investigation_id)
     if not investigation:
         raise HTTPException(status_code=404, detail="Investigation not found.")
-    recommendation = _get_recommendation(db, investigation_id)
+    if investigation.tenant_id != context.tenant_id:
+        raise HTTPException(status_code=404, detail="Investigation not found.")
+    recommendation = _get_recommendation(db, investigation_id, context.tenant_id)
     decisions = (
         db.query(HumanDecision)
-        .filter(HumanDecision.recommendation_id == recommendation.id)
+        .filter(HumanDecision.recommendation_id == recommendation.id, HumanDecision.tenant_id == investigation.tenant_id)
         .order_by(HumanDecision.decided_at.desc())
         .all()
     )
@@ -95,12 +110,22 @@ def remediation_page(request: Request, investigation_id: int, db: Session = Depe
 
 
 @page_router.post("/remediation/{investigation_id}/approve")
-def remediation_approve_page(investigation_id: int, note: str | None = Form(default=None), db: Session = Depends(get_db)):
-    approve(investigation_id, DecisionRequest(note=note), db)
+def remediation_approve_page(
+    investigation_id: int,
+    note: str | None = Form(default=None),
+    db: Session = Depends(get_db),
+    context=Depends(require_roles("analyst", "admin", "owner")),
+):
+    approve(investigation_id, DecisionRequest(note=note), db, context)
     return RedirectResponse(url=f"/remediation/{investigation_id}", status_code=303)
 
 
 @page_router.post("/remediation/{investigation_id}/reject")
-def remediation_reject_page(investigation_id: int, note: str | None = Form(default=None), db: Session = Depends(get_db)):
-    reject(investigation_id, DecisionRequest(note=note), db)
+def remediation_reject_page(
+    investigation_id: int,
+    note: str | None = Form(default=None),
+    db: Session = Depends(get_db),
+    context=Depends(require_roles("analyst", "admin", "owner")),
+):
+    reject(investigation_id, DecisionRequest(note=note), db, context)
     return RedirectResponse(url=f"/remediation/{investigation_id}", status_code=303)

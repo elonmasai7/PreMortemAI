@@ -8,8 +8,15 @@ def apply_decision(recommendation: RemediationRecommendation, decision: str) -> 
         recommendation.status = "rejected"
 
 
-def build_decision_audit(recommendation_id: int, investigation_id: int, decision: str, note: str | None) -> HumanDecision:
+def build_decision_audit(
+    recommendation_id: int,
+    investigation_id: int,
+    tenant_id: int,
+    decision: str,
+    note: str | None,
+) -> HumanDecision:
     return HumanDecision(
+        tenant_id=tenant_id,
         recommendation_id=recommendation_id,
         investigation_id=investigation_id,
         decision=decision,

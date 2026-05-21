@@ -11,11 +11,13 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.api.routes_ai import router as ai_router
+from app.api.routes_auth import router as auth_router
 from app.api.routes_dashboard import router as dashboard_router
 from app.api.routes_health import page_router as health_page_router
 from app.api.routes_health import router as health_router
 from app.api.routes_investigations import page_router as investigations_page_router
 from app.api.routes_investigations import router as investigations_router
+from app.api.routes_metrics import router as metrics_router
 from app.api.routes_remediation import page_router as remediation_page_router
 from app.api.routes_remediation import router as remediation_router
 from app.api.routes_reports import page_router as reports_page_router
@@ -34,6 +36,9 @@ from app.exceptions import (
     ValidationError,
 )
 from app.logging_config import setup_logging
+from app.services.metrics_service import REQUEST_COUNT, REQUEST_LATENCY
+from app.services.rate_limiter import RedisRateLimiter
+from app.services.redis_client import build_redis_client
 
 settings = get_settings()
 setup_logging(settings.log_level)
@@ -41,6 +46,8 @@ logger = logging.getLogger(__name__)
 
 _rate_limit_lock = Lock()
 _rate_limit_windows: dict[tuple[str, str], deque[float]] = defaultdict(deque)
+redis_client = build_redis_client(settings)
+redis_rate_limiter = RedisRateLimiter(redis_client, window_seconds=settings.rate_limit_window_seconds) if redis_client else None
 
 
 @asynccontextmanager
@@ -55,6 +62,8 @@ app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 
 def _is_rate_limited(ip: str, bucket: str, limit: int, window_seconds: int = 60) -> bool:
+    if redis_rate_limiter:
+        return redis_rate_limiter.is_limited(f"{ip}:{bucket}", limit)
     now = time.monotonic()
     key = (ip, bucket)
     with _rate_limit_lock:
@@ -79,10 +88,22 @@ def _rate_limit_bucket(path: str) -> tuple[str, int] | None:
 
 @app.middleware("http")
 async def request_id_middleware(request: Request, call_next):
+    start = time.perf_counter()
     request_id = request.headers.get("x-request-id") or str(uuid.uuid4())
     request.state.request_id = request_id
     response = await call_next(request)
     response.headers["x-request-id"] = request_id
+    elapsed = max(0.0, time.perf_counter() - start)
+    REQUEST_LATENCY.labels(request.method, request.url.path).observe(elapsed)
+    REQUEST_COUNT.labels(request.method, request.url.path, str(response.status_code)).inc()
+    logger.info(
+        "request_complete method=%s path=%s status=%s duration_ms=%.2f request_id=%s",
+        request.method,
+        request.url.path,
+        response.status_code,
+        elapsed * 1000,
+        request_id,
+    )
     return response
 
 
@@ -138,8 +159,10 @@ app.include_router(remediation_page_router)
 app.include_router(reports_page_router)
 
 app.include_router(health_router)
+app.include_router(auth_router)
 app.include_router(splunk_router)
 app.include_router(investigations_router)
 app.include_router(ai_router)
 app.include_router(remediation_router)
 app.include_router(reports_router)
+app.include_router(metrics_router)

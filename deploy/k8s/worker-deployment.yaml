@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: premortem-worker
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: premortem-worker
+  template:
+    metadata:
+      labels:
+        app: premortem-worker
+    spec:
+      containers:
+        - name: worker
+          image: premortem-ai:latest
+          envFrom:
+            - secretRef:
+                name: premortem-env
+          command: ["python", "scripts/run_worker.py"]

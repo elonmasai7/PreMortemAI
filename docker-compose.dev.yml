@@ -1,0 +1,48 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: premortem
+      POSTGRES_USER: premortem
+      POSTGRES_PASSWORD: premortem
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata_dev:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+
+  app:
+    build: .
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+psycopg://premortem:premortem@postgres:5432/premortem
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      - postgres
+      - redis
+    ports:
+      - "8000:8000"
+    command: python scripts/run_dev.py
+
+  worker:
+    build: .
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+psycopg://premortem:premortem@postgres:5432/premortem
+      REDIS_URL: redis://redis:6379/0
+      QUEUE_ENABLED: "true"
+    depends_on:
+      - postgres
+      - redis
+    command: python scripts/run_worker.py
+
+volumes:
+  pgdata_dev:

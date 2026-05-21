@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     app_host: str = Field(default="127.0.0.1", alias="APP_HOST")
     app_port: int = Field(default=8000, alias="APP_PORT")
     database_url: str = Field(default="sqlite:///./premortem.db", alias="DATABASE_URL")
+    database_echo: bool = Field(default=False, alias="DATABASE_ECHO")
 
     splunk_base_url: str | None = Field(default=None, alias="SPLUNK_BASE_URL")
     splunk_username: str | None = Field(default=None, alias="SPLUNK_USERNAME")
@@ -31,6 +32,18 @@ class Settings(BaseSettings):
     ai_model: str | None = Field(default=None, alias="AI_MODEL")
 
     log_level: str = Field(default="INFO", alias="LOG_LEVEL")
+
+    auth_required: bool = Field(default=False, alias="AUTH_REQUIRED")
+    auth_secret_key: str = Field(default="change-me-in-production", alias="AUTH_SECRET_KEY")
+    auth_access_token_minutes: int = Field(default=60, alias="AUTH_ACCESS_TOKEN_MINUTES")
+    auth_bootstrap_admin_username: str = Field(default="admin", alias="AUTH_BOOTSTRAP_ADMIN_USERNAME")
+    auth_bootstrap_admin_password: str = Field(default="admin12345", alias="AUTH_BOOTSTRAP_ADMIN_PASSWORD")
+
+    redis_url: str | None = Field(default=None, alias="REDIS_URL")
+    queue_enabled: bool = Field(default=False, alias="QUEUE_ENABLED")
+    queue_name: str = Field(default="investigations", alias="QUEUE_NAME")
+    cache_ttl_seconds: int = Field(default=60, alias="CACHE_TTL_SECONDS")
+    rate_limit_window_seconds: int = Field(default=60, alias="RATE_LIMIT_WINDOW_SECONDS")
 
     max_spl_query_length: int = 4000
     max_request_body_bytes: int = 1_000_000

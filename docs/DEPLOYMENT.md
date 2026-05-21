@@ -27,6 +27,16 @@
    make run
    ```
 
+6. Run worker (optional when `QUEUE_ENABLED=true`):
+   ```bash
+   make worker
+   ```
+
+7. Apply migrations:
+   ```bash
+   make migrate
+   ```
+
 ## Production-Oriented Guidance
 
 ### Runtime
@@ -45,8 +55,18 @@
 - Rotate Splunk/API credentials regularly.
 
 ### Persistence
-- SQLite is acceptable for hackathon/local usage.
-- For shared/high-availability deployment, migrate to managed relational DB.
+- PostgreSQL is the default production target.
+- Use Alembic migrations for schema changes.
+- Use periodic backups with `make backup-db` and tested restore drills using `make restore-db`.
+
+### Queue and Cache
+- Configure Redis (`REDIS_URL`) for queue and cache/rate-limiting features.
+- Enable investigation worker queue with `QUEUE_ENABLED=true`.
+
+## Container Profiles
+- Development profile: `docker-compose.dev.yml`
+- Production profile: `docker-compose.prod.yml`
+- Kubernetes manifests: `deploy/k8s/`
 
 ## Health and Readiness
 Use:
@@ -58,6 +78,7 @@ Use:
 make lint
 make test
 make export-openapi
+make migrate
 ```
 
 ## OpenAPI Export

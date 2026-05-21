@@ -5,7 +5,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.config import Settings
-from app.dependencies import get_db, get_mcp_client, get_settings_dep, get_splunk_client
+from app.dependencies import get_auth_context, get_db, get_mcp_client, get_settings_dep, get_splunk_client
 from app.models import Investigation, RemediationRecommendation
 
 router = APIRouter(tags=["pages"])
@@ -13,12 +13,20 @@ templates = Jinja2Templates(directory="app/templates")
 
 
 @router.get("/", response_class=HTMLResponse)
-def dashboard(request: Request, db: Session = Depends(get_db), settings: Settings = Depends(get_settings_dep), splunk_client=Depends(get_splunk_client)):
-    investigations = db.query(Investigation).order_by(Investigation.updated_at.desc()).limit(10).all()
-    avg_risk = db.query(func.avg(Investigation.risk_score)).scalar() or 0.0
+def dashboard(
+    request: Request,
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings_dep),
+    splunk_client=Depends(get_splunk_client),
+    context=Depends(get_auth_context),
+):
+    investigations = (
+        db.query(Investigation).filter(Investigation.tenant_id == context.tenant_id).order_by(Investigation.updated_at.desc()).limit(10).all()
+    )
+    avg_risk = db.query(func.avg(Investigation.risk_score)).filter(Investigation.tenant_id == context.tenant_id).scalar() or 0.0
     pending_actions = (
         db.query(RemediationRecommendation)
-        .filter(RemediationRecommendation.status == "pending")
+        .filter(RemediationRecommendation.status == "pending", RemediationRecommendation.tenant_id == context.tenant_id)
         .order_by(RemediationRecommendation.created_at.desc())
         .limit(10)
         .all()
