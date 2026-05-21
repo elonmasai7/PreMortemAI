@@ -1,39 +1,60 @@
 # PreMortem AI
 
-PreMortem AI is an agentic incident prevention commander for Splunk. It helps SRE, DevOps, ITOps, SecOps, and platform teams identify what is likely to fail, why it is likely to fail, what could be impacted, and what action should be approved by a human before escalation becomes an outage.
+PreMortem AI is an evidence-first incident prevention platform for SRE, DevOps, ITOps, SecOps, and platform engineering teams using Splunk. It helps teams answer six operational questions before outages happen:
+
+1. What is likely to break soon?
+2. Why is it likely to break?
+3. What services and users could be affected?
+4. What evidence supports the conclusion?
+5. What should an engineer do next?
+6. What should be documented after the decision?
 
 ## 1) Project Title
 PreMortem AI: Agentic Incident Prevention Commander for Splunk
 
-## 2) Short Description
-An enterprise-focused FastAPI application that turns live Splunk telemetry into evidence-grounded investigations, remediation recommendations, and post-incident reports with human decision auditability.
+## 2) Product Description
+PreMortem AI converts live Splunk telemetry into structured investigations, confidence-ranked root-cause hypotheses, blast-radius estimates, and human-approved remediation decisions. It is intentionally designed for operational trust: no hidden mock data, no silent errors, and no destructive auto-actions.
 
 ## 3) Problem Statement
-Most operations workflows are reactive. Teams receive alerts after user impact has started, then spend critical minutes correlating logs, metrics, deployments, and dependency behavior across tools. This delay increases MTTR, business impact, and operator fatigue.
+Most incident workflows are reactive. Teams are alerted after customer impact begins, then manually correlate logs, metrics, deployment events, and dependency behavior under pressure. This increases MTTR, causes context switching, and creates inconsistent post-incident learning.
 
 ## 4) Solution Overview
-PreMortem AI continuously analyzes Splunk operational telemetry and provides:
-- A risk-first executive dashboard for rapid understanding.
-- An investigation workspace with evidence timeline, query transparency, root-cause ranking, and blast radius.
-- A remediation approval workflow where actions are recommended but never destructively auto-executed.
-- A report generator for post-incident documentation and follow-up detection improvements.
+PreMortem AI provides a full prevention workflow:
+- Risk-first dashboard for executive and on-call visibility
+- Evidence-centric investigation views for engineers
+- Human approval gate for remediation outcomes
+- Auditable decision history and report generation
 
-## 5) Key Features
-- Live Splunk REST/search job integration with no runtime mock fallback.
-- Internal Python multi-agent orchestration (no external JS agent frameworks).
-- Configurable AI provider abstraction (`openai_compatible`, `local`, `disabled`).
-- Evidence-grounded reasoning with confidence, assumptions, and missing data.
-- Human approval/rejection with note and audit trail.
-- Structured setup and health pages showing configuration completeness.
+## 5) Primary Users
+- Site Reliability Engineers
+- DevOps Engineers
+- ITOps Engineers
+- Platform Engineers
+- Security Operations Analysts
+- Engineering Managers
 
-## 6) Architecture Diagram
+## 6) Product Outcomes
+- Faster operational understanding during risk escalation
+- Evidence-backed decision making across teams
+- Reduced guesswork in root-cause analysis
+- Better handoff quality via standardized report output
+
+## 7) Current Capabilities
+- Live Splunk API integration (no runtime fake data fallback)
+- Internal Python multi-agent orchestration
+- AI provider abstraction (`openai_compatible`, `local`, `disabled`)
+- Human approval/rejection with note and audit trail
+- Setup and health transparency pages
+- Markdown report generation
+
+## 8) Architecture Diagrams
 - `diagrams/architecture.mmd`
 - `diagrams/data-flow.mmd`
 - `diagrams/agent-flow.mmd`
 
-To render a PNG/SVG from Mermaid diagrams, use your preferred Mermaid CLI/renderer and export from the files above.
+Render diagrams as PNG/SVG with your preferred Mermaid renderer.
 
-## 6.1) Application Architecture (In README)
+## 9) Application Architecture (Current Implementation)
 
 ### Layered Architecture
 ```text
@@ -70,28 +91,57 @@ To render a PNG/SVG from Mermaid diagrams, use your preferred Mermaid CLI/render
 1. User creates an investigation for a target service.
 2. Coordinator Agent executes SPL templates via Splunk APIs.
 3. Evidence is normalized and stored.
-4. Forecast/root-cause/blast-radius analysis updates investigation risk context.
-5. Remediation recommendation is generated and marked human-approval-required.
-6. Human approves/rejects with note; decision is audit logged.
+4. Forecast, root-cause, and blast-radius analysis update risk context.
+5. Remediation recommendation is generated as approval-required.
+6. Human approves or rejects with a note; action is audit logged.
 7. Report Agent generates a markdown post-incident artifact.
 
-### Design Principles
-- Evidence-first outputs (no invented incidents or fake telemetry).
-- Human-controlled remediation decisions.
-- Explicit setup/health transparency when config is incomplete.
-- No Node.js and no JS framework dependency.
+## 10) Startup-Scale Product Architecture (Target Evolution)
+The current implementation is optimized for local and small-team deployment. The following is a practical scale plan for startup product growth.
 
-## 7) Screenshots Section
-Capture and include screenshots for:
+### Phase A: Team Adoption (Current + Near Term)
+- Single FastAPI instance
+- SQLite for application state
+- Splunk as telemetry source of truth
+- Manual operator workflows
+
+### Phase B: Multi-Team SaaS Readiness
+- Replace SQLite with managed Postgres
+- Split web/API process from background workers
+- Introduce queue-backed investigation execution
+- Add user accounts, RBAC, and SSO (OIDC/SAML)
+- Add tenant-aware data model boundaries
+
+### Phase C: Scale and Reliability
+- Horizontal API scaling behind load balancer
+- Worker autoscaling by queue depth and job latency
+- Per-tenant rate limits and usage quotas
+- Caching layer for repeated health/index metadata reads
+- High-availability database and backup restore automation
+
+### Phase D: Enterprise Maturity
+- Fine-grained policy engine for remediation governance
+- Private networking options and region placement controls
+- Compliance controls (audit export, retention policy, key management)
+- Full observability: traces, metrics, logs, SLOs, error budgets
+
+## 11) Productization Priorities
+- Stable onboarding: guided setup validation and first successful search
+- Trust UX: show evidence, assumptions, confidence, and missing data
+- Workflow quality: reduce click depth from detection to decision
+- Admin controls: tenant settings, integrations, user permissions
+- Platform reliability: predictable run times and transparent failures
+
+## 12) Screenshots to Include
 - Dashboard (`/`)
 - Setup (`/setup`)
-- Splunk Search Workbench (`/splunk/search`)
-- Investigations List (`/investigations`)
+- Splunk Search (`/splunk/search`)
+- Investigations (`/investigations`)
 - Investigation Detail (`/investigations/{id}`)
 - Remediation Approval (`/remediation/{id}`)
 - Reports (`/reports`)
 
-## 8) Tech Stack
+## 13) Tech Stack
 - Python 3.11+
 - FastAPI
 - Jinja2 server-rendered templates
@@ -101,15 +151,15 @@ Capture and include screenshots for:
 - Uvicorn
 - Pytest
 
-## 9) Prerequisites
-- Python 3.11 or newer
-- A Splunk Enterprise or Splunk Cloud management endpoint
-- Credentials for Splunk API access (token preferred)
+## 14) Prerequisites
+- Python 3.11+
+- Splunk Enterprise or Splunk Cloud management endpoint access
+- Splunk credentials (token preferred)
 
-## 10) Splunk Setup
-Detailed guidance: `docs/SPLUNK_SETUP.md`
+## 15) Splunk Setup
+See detailed setup and validation guidance in `docs/SPLUNK_SETUP.md`.
 
-## 11) Environment Variables
+## 16) Environment Variables
 Copy `.env.example` to `.env` and configure:
 
 ```env
@@ -138,7 +188,7 @@ AI_MODEL=
 LOG_LEVEL=INFO
 ```
 
-## 12) Installation
+## 17) Installation
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
@@ -146,28 +196,23 @@ make install
 cp .env.example .env
 ```
 
-## 13) Running Locally
+## 18) Run Locally
 ```bash
 make run
 ```
+Open `http://127.0.0.1:8000`.
 
-Then open `http://127.0.0.1:8000`.
-
-## 14) Running Tests
+## 19) Tests and Quality Checks
 ```bash
 make test
-```
-
-Optional checks:
-```bash
 make lint
 make export-openapi
 ```
 
-## 15) API Routes
-Full route documentation with request/response examples: `docs/API.md`
+## 20) API Summary
+Full request/response examples: `docs/API.md`
 
-Quick groups:
+Route groups:
 - Health: `/api/health*`
 - Splunk: `/api/splunk*`
 - Investigations: `/api/investigations*`
@@ -175,8 +220,8 @@ Quick groups:
 - Remediation: `/api/remediation*`
 - Reports: `/api/reports*`
 
-## 16) Agent Architecture
-Detailed responsibilities and workflow: `docs/AGENTS.md`
+## 21) Internal Agent System
+Detailed responsibilities and execution model: `docs/AGENTS.md`
 
 Core agents:
 - Coordinator Agent
@@ -187,27 +232,33 @@ Core agents:
 - Remediation Agent
 - Report Agent
 
-## 17) No Dummy Data Policy
-- Production/runtime code does not generate fake incidents.
-- If Splunk config is missing, the UI/API explicitly show setup-required state.
-- Test fixtures are used only in `tests/`.
+## 22) No-Dummy-Data Policy
+- Runtime behavior never injects fake incidents or synthetic Splunk rows.
+- Missing configuration is displayed as setup-required.
+- Test fixtures are restricted to `tests/`.
 
-## 18) Security Notes
-Detailed threat model and controls: `docs/SECURITY.md`
+## 23) Security and Trust
+See full security documentation: `docs/SECURITY.md`
 
-Highlights:
-- Secret-by-environment configuration
-- Request body size limit
+Implemented controls include:
+- Environment-based secret management
+- Request size limiting
 - SPL query safety checks
-- Jinja autoescape templating
-- Remediation decision audit logs
+- Jinja autoescaping
+- Decision audit logging
 
-## 19) Troubleshooting
-See `docs/TROUBLESHOOTING.md` for common operational issues and fixes.
+## 24) Operations and Troubleshooting
+- Troubleshooting guide: `docs/TROUBLESHOOTING.md`
+- Deployment guide: `docs/DEPLOYMENT.md`
+- Architecture details: `docs/ARCHITECTURE.md`
 
-## 20) Hackathon Submission Notes
-- `docs/HACKATHON_SUBMISSION.md`
-- `docs/DEMO_SCRIPT.md`
+## 25) Product Roadmap (Practical Next Steps)
+1. Authentication and tenant RBAC
+2. Queue-backed async investigation runs
+3. Managed Postgres migration
+4. Alert subscriptions and notification channels
+5. Integration catalog (ticketing, chatops, incident platforms)
+6. SLA reporting and team-level analytics
 
-## 21) License
+## 26) License
 MIT (`LICENSE`)
